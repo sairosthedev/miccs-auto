@@ -20,7 +20,7 @@ import {
   MessageSquare,
   Target,
 } from "lucide-react"
-import StatsGrid from "@/components/StatsGrid"
+import { StatsGrid } from "@/components/StatsGrid"
 import LeadsList from "@/components/LeadsList"
 import SalesList from "@/components/SalesList"
 import InventoryList from "@/components/InventoryList"
