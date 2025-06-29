@@ -27,7 +27,7 @@ export default function CarListPage() {
                 <li><span className="font-semibold text-white">Status:</span> {car.status}</li>
                 <li><span className="font-semibold text-white">Inquiries:</span> {car.inquiries}</li>
               </ul>
-              <Link href={`/car/${car.id}`}>
+              <Link href={`/car/${car.id}?source=listing`}>
                 <span className="inline-block mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">View Details</span>
               </Link>
             </div>

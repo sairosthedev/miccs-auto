@@ -76,7 +76,7 @@ export default function AdminDashboard() {
   const handleAddCar = () => setShowCarModal(true)
   const handleViewReports = () => router.push("/admin/view-reports")
   const handleManageUsers = () => router.push("/admin/manage-users")
-  const handleViewCar = (car: RecentCarsCar) => alert(`View car: ${car.make} ${car.model}`)
+  const handleViewCar = (car: RecentCarsCar) => router.push(`/car/${car.id}?source=admin`)
   const handleEditCar = (car: RecentCarsCar) => {
     setEditCar(car)
     setShowCarModal(true)

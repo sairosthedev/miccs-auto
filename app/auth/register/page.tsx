@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, ArrowLeft, CheckCircle } from "lucide-react"
+import { apiFetch } from '@/lib/api'
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -49,17 +50,23 @@ export default function RegisterPage() {
       return
     }
 
-    // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: formData.email,
+          password: formData.password,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+        }),
+      })
       setSuccess(true)
-
-      // Redirect after success
       setTimeout(() => {
         window.location.href = "/auth/login"
       }, 2000)
-    } catch (err) {
-      setError("Registration failed. Please try again.")
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -165,7 +172,7 @@ export default function RegisterPage() {
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="john@example.com"
+                  placeholder="wekwasairos@gmail.com"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -200,7 +207,7 @@ export default function RegisterPage() {
                     <SelectItem value="customer" className="text-white hover:bg-gray-700">
                       Customer
                     </SelectItem>
-                    <SelectItem value="sales_agent" className="text-white hover:bg-gray-700">
+                    <SelectItem value="agent" className="text-white hover:bg-gray-700">
                       Sales Agent
                     </SelectItem>
                   </SelectContent>

@@ -1,13 +1,16 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Search, Car, Users, Shield, TrendingUp, Star, Phone, Mail, MapPin } from "lucide-react"
+import { useRouter } from 'next/navigation'
 
 export default function HomePage() {
+  const router = useRouter()
   const featuredCars = [
     {
       id: 1,
@@ -77,7 +80,7 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                onClick={() => (window.location.href = "/auth/login")}
+                onClick={() => router.push('/auth/login')}
               >
                 Sign In
               </Button>
@@ -186,9 +189,11 @@ export default function HomePage() {
                 </CardContent>
                 <CardFooter className="p-6 pt-0">
                   <div className="flex gap-2 w-full">
-                    <Button variant="outline" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800">
-                      View Details
-                    </Button>
+                    <Link href={`/car/${car.id}?source=main`} className="flex-1">
+                      <Button variant="outline" className="w-full border-gray-700 text-gray-300 hover:bg-gray-800">
+                        View Details
+                      </Button>
+                    </Link>
                     <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white">Add to Cart</Button>
                   </div>
                 </CardFooter>
@@ -197,9 +202,11 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8">
-              View All Inventory
-            </Button>
+            <Link href="/car">
+              <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8">
+                View All Inventory
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

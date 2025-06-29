@@ -48,7 +48,7 @@ const InventoryList: React.FC<InventoryListProps> = ({ availableCars }) => {
               variant="outline"
               size="sm"
               className="border-gray-700 text-gray-300 hover:bg-gray-700"
-              onClick={() => router.push(`/car/${car.id}`)}
+              onClick={() => router.push(`/car/${car.id}?source=agent`)}
             >
               <Eye className="h-4 w-4 mr-2" />
               View Details
