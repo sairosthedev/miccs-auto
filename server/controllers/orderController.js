@@ -47,4 +47,14 @@ exports.getUserOrders = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+};
+
+// Get count of completed sales/orders
+exports.getCompletedSalesCount = async (req, res) => {
+  try {
+    const count = await Order.countDocuments({ status: 'Completed' });
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 }; 

@@ -13,4 +13,7 @@ router.get('/', auth, role('admin'), orderController.getAllOrders);
 // Get orders for a user
 router.get('/user/:id', auth, orderController.getUserOrders);
 
+// Get count of completed sales/orders
+router.get('/count/completed', orderController.getCompletedSalesCount);
+
 module.exports = router; 

@@ -28,4 +28,14 @@ exports.login = async (req, res) => {
 
 exports.logout = (req, res) => {
   res.json({ message: 'Logged out' });
+};
+
+// Get count of users
+exports.getUsersCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 }; 

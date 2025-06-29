@@ -5,14 +5,34 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const errorHandler = require('./middleware/errorHandler');
+const path = require('path');
 
 const app = express();
 
 // Global Middleware
 app.use(express.json());
-app.use(cors());
-app.use(helmet());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+}));
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "http://localhost:5000"],
+    },
+  })
+);
 app.use(morgan('dev'));
+
+// Add CORS headers for static files in /uploads
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
 const authRoutes = require('./routes/auth');

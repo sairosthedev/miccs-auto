@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AdminHeader } from "@/components/AdminHeader"
 import { StatsGrid } from "@/components/StatsGrid"
@@ -18,50 +18,25 @@ import {
   Tag,
   Percent,
 } from "lucide-react"
+import { apiFetch } from "@/lib/api"
+
+// Extend RecentCarsCar to include all fields needed for editing
+type DashboardCar = RecentCarsCar & {
+  images?: (string | File)[];
+  color?: string;
+  mileage?: number;
+  vin?: string;
+  description?: string;
+};
 
 export default function AdminDashboard() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
-  const [cars, setCars] = useState<RecentCarsCar[]>([
-    {
-      id: 1,
-      make: "BMW",
-      model: "M4 Competition",
-      year: 2023,
-      price: 75000,
-      originalPrice: 82000,
-      discount: 9,
-      status: "Available",
-      image: "/placeholder.svg?height=100&width=150",
-      addedDate: "2024-01-15",
-    },
-    {
-      id: 2,
-      make: "Mercedes-Benz",
-      model: "AMG GT",
-      year: 2022,
-      price: 68000,
-      originalPrice: 75000,
-      discount: 9,
-      status: "Sold",
-      image: "/placeholder.svg?height=100&width=150",
-      addedDate: "2024-01-14",
-    },
-    {
-      id: 3,
-      make: "Audi",
-      model: "RS6 Avant",
-      year: 2023,
-      price: 85000,
-      status: "Available",
-      image: "/placeholder.svg?height=100&width=150",
-      addedDate: "2024-01-13",
-    },
-  ])
+  const [cars, setCars] = useState<DashboardCar[]>([])
   const [showCarModal, setShowCarModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
-  const [editCar, setEditCar] = useState<RecentCarsCar | null>(null)
-  const [selectedCarForShare, setSelectedCarForShare] = useState<RecentCarsCar | null>(null)
+  const [editCar, setEditCar] = useState<DashboardCar | null>(null)
+  const [selectedCarForShare, setSelectedCarForShare] = useState<DashboardCar | null>(null)
 
   const stats = [
     { icon: Car, label: "Total Cars", value: cars.length.toString(), change: "+12 this month", color: "text-blue-400" },
@@ -70,59 +45,183 @@ export default function AdminDashboard() {
     { icon: TrendingUp, label: "Monthly Revenue", value: "$340K", change: "+22% increase", color: "text-yellow-400" },
   ]
 
+  // Fetch real car data on mount
+  useEffect(() => {
+    async function fetchCars() {
+      try {
+        const data = await apiFetch("/cars");
+        // Map backend data to RecentCarsCar type if needed
+        const mapped = data.map((car: any) => ({
+          id: car._id || car.id,
+          make: car.make,
+          model: car.model,
+          year: car.year,
+          price: car.price,
+          originalPrice: car.originalPrice,
+          discount: car.discount,
+          status: car.sold ? "Sold" : "Available",
+          image: car.images && car.images.length > 0
+            ? (car.images[0].startsWith('http') ? car.images[0] : `http://localhost:5000${car.images[0]}`)
+            : "/placeholder.svg?height=100&width=150",
+          addedDate: car.createdAt ? car.createdAt.slice(0, 10) : "",
+          images: car.images || [],
+          color: car.color || "",
+          mileage: car.mileage || 0,
+          vin: car.vin || "",
+          description: car.description || "",
+        }))
+        setCars(mapped)
+      } catch (err) {
+        // Optionally handle error
+        console.error("Failed to fetch cars:", err)
+      }
+    }
+    fetchCars()
+  }, [])
+
   // Handlers for actions
   const handleSettings = () => alert("Settings clicked")
-  const handleLogout = () => alert("Logout clicked")
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/auth/logout', { method: 'GET' });
+      // Clear localStorage/sessionStorage if you store tokens
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      // Redirect to landing page
+      router.push('/');
+    } catch (err) {
+      alert('Logout failed');
+    }
+  }
   const handleAddCar = () => setShowCarModal(true)
   const handleViewReports = () => router.push("/admin/view-reports")
   const handleManageUsers = () => router.push("/admin/manage-users")
-  const handleViewCar = (car: RecentCarsCar) => router.push(`/car/${car.id}?source=admin`)
-  const handleEditCar = (car: RecentCarsCar) => {
-    setEditCar(car)
+  const handleViewCar = (car: DashboardCar) => router.push(`/car/${car.id}?source=admin`)
+  const handleEditCar = (car: DashboardCar) => {
+    setEditCar({
+      ...car,
+      images: car.images ? car.images : (car.image ? [car.image] : []),
+      color: car.color || "",
+      mileage: car.mileage || 0,
+      vin: car.vin || "",
+      description: car.description || "",
+    })
     setShowCarModal(true)
   }
-  const handleDeleteCar = (car: RecentCarsCar) => {
+  const handleDeleteCar = async (car: DashboardCar) => {
     if (window.confirm(`Are you sure you want to delete ${car.make} ${car.model}?`)) {
-      setCars(cars.filter(c => c.id !== car.id))
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          alert('No token found. Please log in again.');
+          return;
+        }
+        await apiFetch(`/cars/${car.id}`, {
+          method: 'DELETE',
+        }, token);
+
+        // Refresh car list
+        const carsRes = await apiFetch('/cars');
+        const mapped = carsRes.map((car: any) => ({
+          id: car._id || car.id,
+          make: car.make,
+          model: car.model,
+          year: car.year,
+          price: car.price,
+          originalPrice: car.originalPrice,
+          discount: car.discount,
+          status: car.sold ? 'Sold' : 'Available',
+          image: car.images && car.images.length > 0
+            ? (car.images[0].startsWith('http') ? car.images[0] : `http://localhost:5000${car.images[0]}`)
+            : '/placeholder.svg?height=100&width=150',
+          addedDate: car.createdAt ? car.createdAt.slice(0, 10) : '',
+          images: car.images || [],
+        }));
+        setCars(mapped);
+      } catch (err) {
+        alert('Failed to delete car: ' + (err as Error).message);
+      }
     }
   }
-  const handleShareCar = (car: RecentCarsCar) => {
+  const handleShareCar = (car: DashboardCar) => {
     setSelectedCarForShare(car)
     setShowShareModal(true)
   }
   const handleFilter = () => alert("Filter clicked")
 
   // Add or update car
-  const handleAddCarSubmit = (car: { 
-    make: string; 
-    model: string; 
-    year: number; 
-    price: number; 
-    originalPrice?: number;
-    discount?: number;
-    status: string;
-    image: string;
-    description?: string;
-    mileage?: number;
-    color?: string;
-    vin?: string;
-  }) => {
-    if (editCar) {
-      setCars(cars.map(c => c.id === editCar.id ? { 
-        ...editCar, 
+  const handleAddCarSubmit = async (car: any) => {
+    try {
+      let imageUrls = [];
+      // If images are File objects, upload them
+      if (car.images && car.images.length > 0 && car.images[0] instanceof File) {
+        const formData = new FormData();
+        car.images.forEach((img: File) => formData.append('images', img));
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          alert('No token found. Please log in again.');
+          return;
+        }
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api'}/cars/upload-images`, {
+          method: 'POST',
+          body: formData,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to upload images');
+        const data = await res.json();
+        imageUrls = data.urls;
+      } else if (car.images && car.images.length > 0) {
+        imageUrls = car.images;
+      }
+
+      const carData = {
         ...car,
-        addedDate: editCar.addedDate
-      } : c))
-      setEditCar(null)
-    } else {
-      setCars([
-        {
-          id: Date.now(),
-          ...car,
-          addedDate: new Date().toISOString().slice(0, 10),
-        },
-        ...cars,
-      ])
+        images: imageUrls,
+      };
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) {
+        alert('No token found. Please log in again.');
+        return;
+      }
+      if (car.id) {
+        // Edit existing car
+        await apiFetch(`/cars/${car.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(carData),
+        }, token);
+      } else {
+        // Add new car
+        await apiFetch('/cars', {
+          method: 'POST',
+          body: JSON.stringify(carData),
+        }, token);
+      }
+
+      // Refresh car list
+      const carsRes = await apiFetch('/cars');
+      const mapped = carsRes.map((car: any) => ({
+        id: car._id || car.id,
+        make: car.make,
+        model: car.model,
+        year: car.year,
+        price: car.price,
+        originalPrice: car.originalPrice,
+        discount: car.discount,
+        status: car.sold ? 'Sold' : 'Available',
+        image: car.images && car.images.length > 0
+          ? (car.images[0].startsWith('http') ? car.images[0] : `http://localhost:5000${car.images[0]}`)
+          : '/placeholder.svg?height=100&width=150',
+        addedDate: car.createdAt ? car.createdAt.slice(0, 10) : '',
+        images: car.images || [],
+        color: car.color || '',
+        mileage: car.mileage || 0,
+        vin: car.vin || '',
+        description: car.description || '',
+      }));
+      setCars(mapped);
+      setEditCar(null);
+    } catch (err) {
+      alert('Failed to add/update car: ' + (err as Error).message);
     }
   }
 
@@ -158,7 +257,7 @@ export default function AdminDashboard() {
         open={showCarModal}
         onClose={() => { setShowCarModal(false); setEditCar(null) }}
         onSave={handleAddCarSubmit}
-        car={editCar}
+        car={editCar as any}
       />
 
       {/* Social Share Modal */}

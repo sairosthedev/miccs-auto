@@ -1,11 +1,12 @@
 "use client";
 import { useParams, useSearchParams } from "next/navigation";
-import { mockCars } from "@/lib/mock";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Car, Hash, Users, CheckCircle, DollarSign } from 'lucide-react';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 
 export default function CarDetailsPage() {
   const params = useParams();
@@ -14,15 +15,37 @@ export default function CarDetailsPage() {
   const source = searchParams.get('source');
   const [userRole, setUserRole] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const car = mockCars.find((c) => String(c.id) === String(carId));
+  const [car, setCar] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [carImages, setCarImages] = useState<string[]>([]);
 
   // Generate multiple images for carousel (in real app, these would come from API)
-  const carImages = car ? [
-    car.image,
-    car.image.replace('.jpg', '-2.jpg'),
-    car.image.replace('.jpg', '-3.jpg'),
-    car.image.replace('.jpg', '-4.jpg'),
-  ] : [];
+  useEffect(() => {
+    async function fetchCar() {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch(`${API_BASE_URL}/cars/${carId}`);
+        if (!res.ok) throw new Error("Car not found");
+        const data = await res.json();
+        setCar(data);
+        // Map images to absolute URLs
+        if (data.images && data.images.length > 0) {
+          setCarImages(data.images.map((img: string) => img.startsWith('http') ? img : `http://localhost:5000${img}`));
+        } else if (data.image) {
+          setCarImages([data.image]);
+        } else {
+          setCarImages(["/placeholder.svg"]);
+        }
+      } catch (err: any) {
+        setError(err.message || "Car not found");
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (carId) fetchCar();
+  }, [carId]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
@@ -85,7 +108,15 @@ export default function CarDetailsPage() {
     return '/agent/dashboard#inventory';
   };
 
-  if (!car) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div>Loading car details...</div>
+      </div>
+    );
+  }
+
+  if (error || !car) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex flex-col items-center justify-center">
         <div className="text-center">
@@ -184,7 +215,7 @@ export default function CarDetailsPage() {
                 </span>
                 <span className="flex items-center">
                   <Users className="w-4 h-4 mr-1" />
-                  {car.inquiries} inquiries
+                  {car.inquiries || 0} inquiries
                 </span>
               </div>
             </div>
@@ -219,7 +250,7 @@ export default function CarDetailsPage() {
                   <MapPin className="w-5 h-5 text-red-400" />
                   <div>
                     <p className="text-sm text-gray-400">Mileage</p>
-                    <p className="font-semibold">{car.mileage.toLocaleString()} miles</p>
+                    <p className="font-semibold">{car.mileage ? car.mileage.toLocaleString() : 0} miles</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">

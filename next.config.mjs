@@ -8,6 +8,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['localhost', 'localhost:5000'],
   },
   transpilePackages: ["recharts"],
 }

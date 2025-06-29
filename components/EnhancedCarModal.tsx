@@ -18,7 +18,7 @@ interface Car {
   originalPrice?: number
   discount?: number
   status: string
-  image: string
+  images: (string | File)[]
   description?: string
   mileage?: number
   color?: string
@@ -42,7 +42,7 @@ export function EnhancedCarModal({ open, onClose, onSave, car }: EnhancedCarModa
     originalPrice: 0,
     discount: 0,
     status: "Available",
-    image: "/placeholder.svg?height=100&width=150",
+    images: [],
     description: "",
     mileage: 0,
     color: "",
@@ -52,10 +52,18 @@ export function EnhancedCarModal({ open, onClose, onSave, car }: EnhancedCarModa
 
   useEffect(() => {
     if (car) {
+      let originalPrice = car.originalPrice;
+      if (!originalPrice && car.discount && car.discount > 0) {
+        // Reverse-calculate original price from price and discount
+        originalPrice = Math.round(car.price / (1 - car.discount / 100));
+      } else if (!originalPrice) {
+        originalPrice = car.price;
+      }
       setForm({
         ...car,
-        originalPrice: car.originalPrice || car.price,
+        originalPrice,
         discount: car.discount || 0,
+        images: car.images || [],
       })
     } else {
       setForm({
@@ -66,7 +74,7 @@ export function EnhancedCarModal({ open, onClose, onSave, car }: EnhancedCarModa
         originalPrice: 0,
         discount: 0,
         status: "Available",
-        image: "/placeholder.svg?height=100&width=150",
+        images: [],
         description: "",
         mileage: 0,
         color: "",
@@ -101,6 +109,11 @@ export function EnhancedCarModal({ open, onClose, onSave, car }: EnhancedCarModa
       price: newPrice
     }))
   }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files).slice(0, 10) : [];
+    setForm(prev => ({ ...prev, images: files }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -274,13 +287,25 @@ export function EnhancedCarModal({ open, onClose, onSave, car }: EnhancedCarModa
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">Image URL</label>
+              <label className="text-sm font-medium text-gray-300">Upload Images (up to 10)</label>
               <Input
-                placeholder="https://example.com/car-image.jpg"
-                value={form.image}
-                onChange={(e) => setForm(prev => ({ ...prev, image: e.target.value }))}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
                 className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-yellow-400"
               />
+              <div className="flex flex-wrap gap-2 mt-2">
+                {form.images && form.images.length > 0 &&
+                  form.images.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={typeof img === 'string' ? img : URL.createObjectURL(img)}
+                      alt={`preview-${idx}`}
+                      className="w-20 h-16 object-cover rounded border border-gray-700"
+                    />
+                  ))}
+              </div>
             </div>
 
             {/* Preview */}
@@ -288,8 +313,21 @@ export function EnhancedCarModal({ open, onClose, onSave, car }: EnhancedCarModa
               <label className="text-sm font-medium text-gray-300">Preview</label>
               <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
                 <div className="flex items-center space-x-4">
-                  <div className="w-20 h-16 bg-gray-700 rounded-md flex items-center justify-center">
-                    <span className="text-gray-400 text-xs">Image</span>
+                  <div className="flex gap-2">
+                    {form.images && form.images.length > 0 ? (
+                      form.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={typeof img === 'string' ? img : URL.createObjectURL(img)}
+                          alt={`preview-${idx}`}
+                          className="w-20 h-16 object-cover rounded border border-gray-700"
+                        />
+                      ))
+                    ) : (
+                      <div className="w-20 h-16 bg-gray-700 rounded-md flex items-center justify-center">
+                        <span className="text-gray-400 text-xs">Image</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1">
                     <h4 className="font-semibold text-white">

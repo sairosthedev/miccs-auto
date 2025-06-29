@@ -59,4 +59,14 @@ exports.getShareLink = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+};
+
+// Get count of available cars
+exports.getAvailableCarsCount = async (req, res) => {
+  try {
+    const count = await Car.countDocuments({ inStock: true, sold: false });
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 }; 
